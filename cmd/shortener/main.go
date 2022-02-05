@@ -14,6 +14,8 @@ type urlToShort struct {
 // TODO: Переделать на другое хранилище
 var localStore = make(map[string]string)
 
+const hostName = "http://localhost:8080"
+
 // TODO: Вынести реализацию из main.go в структуру проекта
 
 func RequestHandler(w http.ResponseWriter, r *http.Request) {
@@ -40,9 +42,9 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Location", fullURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
+	return
 }
 
 func PostHandler(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +57,9 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 	urlID := uuid.NewV4().String()
 	localStore[urlID] = string(body)
 
-	makeResponse(w, urlID, http.StatusCreated)
+	short := hostName + "/" + urlID
+
+	makeResponse(w, short, http.StatusCreated)
 }
 
 func makeResponse(w http.ResponseWriter, response string, httpStatusCode int) {
