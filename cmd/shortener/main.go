@@ -40,7 +40,9 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	makeResponse(w, fullURL, http.StatusOK)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Location", fullURL)
+	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 func PostHandler(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +61,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 	urlID := uuid.NewV4().String()
 	localStore[urlID] = string(body)
 
-	makeResponse(w, urlID, http.StatusOK)
+	makeResponse(w, urlID, http.StatusCreated)
 }
 
 func makeResponse(w http.ResponseWriter, response string, httpStatusCode int) {
