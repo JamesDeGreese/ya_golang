@@ -46,15 +46,9 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func PostHandler(w http.ResponseWriter, r *http.Request) {
-	headerContentTtype := r.Header.Get("Content-Type")
-	if headerContentTtype != "text/plain" {
-		makeResponse(w, "", http.StatusUnsupportedMediaType)
-		return
-	}
-
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		makeResponse(w, "", http.StatusUnsupportedMediaType)
+		makeResponse(w, "", http.StatusInternalServerError)
 		return
 	}
 
