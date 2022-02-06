@@ -15,10 +15,8 @@ func RequestHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		GetHandler(w, r)
-		break
 	case http.MethodPost:
 		PostHandler(w, r)
-		break
 	default:
 		makeResponse(w, "", http.StatusMethodNotAllowed)
 	}

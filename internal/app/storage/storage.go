@@ -17,7 +17,6 @@ func (s Storage) Get(ID string) string {
 
 func (s Storage) Add(ID string, URL string) {
 	s.List[ID] = URL
-	return
 }
 
 func GetInstance() *Storage {

@@ -37,6 +37,7 @@ func TestGetHandler(t *testing.T) {
 			h := http.HandlerFunc(GetHandler)
 			h.ServeHTTP(w, request)
 			result := w.Result()
+			defer result.Body.Close()
 
 			assert.Equal(t, testCase.want, result.StatusCode)
 		})
@@ -49,6 +50,7 @@ func TestPostHandler(t *testing.T) {
 	h := http.HandlerFunc(PostHandler)
 	h.ServeHTTP(w, request)
 	result := w.Result()
+	defer result.Body.Close()
 
 	assert.Equal(t, http.StatusCreated, result.StatusCode)
 }
@@ -86,6 +88,7 @@ func TestRequestHandler(t *testing.T) {
 			h := http.HandlerFunc(RequestHandler)
 			h.ServeHTTP(w, request)
 			result := w.Result()
+			defer result.Body.Close()
 
 			assert.Equal(t, testCase.want, result.StatusCode)
 		})
