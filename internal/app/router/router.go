@@ -1,13 +1,19 @@
 package router
 
 import (
+	"github.com/JamesDeGreese/ya_golang/internal/app"
 	"github.com/JamesDeGreese/ya_golang/internal/app/handlers"
+	"github.com/JamesDeGreese/ya_golang/internal/app/storage"
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter() *gin.Engine {
+func SetupRouter(c app.Config, s *storage.Storage) *gin.Engine {
 	r := gin.Default()
-	r.GET("/:ID", handlers.GetHandler)
-	r.POST("/", handlers.PostHandler)
+	h := handlers.Handler{
+		Config:  c,
+		Storage: s,
+	}
+	r.GET("/:ID", h.GetHandler)
+	r.POST("/", h.PostHandler)
 	return r
 }
