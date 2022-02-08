@@ -1,52 +1,49 @@
 package handlers
 
 import (
+	"fmt"
+	"io/ioutil"
+	"net/http"
+
+	"github.com/JamesDeGreese/ya_golang/internal/app"
 	"github.com/JamesDeGreese/ya_golang/internal/app/storage"
 	"github.com/gin-gonic/gin"
 	uuid "github.com/satori/go.uuid"
-	"io/ioutil"
-	"net/http"
 )
 
-// TODO: Вынести в переменные окружения или конфиг
-const hostName = "http://localhost:8080"
+type Handler struct {
+	Config  app.Config
+	Storage storage.Repository
+}
 
-func GetHandler(c *gin.Context) {
+func (h Handler) GetHandler(c *gin.Context) {
 	ID := c.Param("ID")
 
 	if ID == "" {
-		MakeResponse(c, "", http.StatusBadRequest)
+		c.String(http.StatusBadRequest, "")
 		return
 	}
 
-	s := storage.GetInstance()
-
-	fullURL := s.Get(ID)
-	if fullURL == "" {
-		MakeResponse(c, "", http.StatusNotFound)
+	fullURL, err := h.Storage.Get(ID)
+	if err != nil {
+		c.String(http.StatusNotFound, "")
 		return
 	}
 
 	c.Redirect(http.StatusTemporaryRedirect, fullURL)
 }
 
-func PostHandler(c *gin.Context) {
+func (h Handler) PostHandler(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		MakeResponse(c, "", http.StatusInternalServerError)
+		c.String(http.StatusInternalServerError, "")
 		return
 	}
 
-	s := storage.GetInstance()
-
 	urlID := uuid.NewV4().String()
-	s.Add(urlID, string(body))
+	h.Storage.Add(urlID, string(body))
 
-	short := hostName + "/" + urlID
+	short := fmt.Sprintf("%s:%d/%s", h.Config.Host, h.Config.Port, urlID)
 
-	MakeResponse(c, short, http.StatusCreated)
-}
-
-func MakeResponse(c *gin.Context, response string, httpStatusCode int) {
-	c.String(httpStatusCode, "%s", response)
+	c.String(http.StatusCreated, "%s", short)
 }
