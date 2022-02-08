@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -18,7 +17,7 @@ func (s Storage) Get(ID string) (string, error) {
 	item := s.List[ID]
 
 	if item == "" {
-		return "", errors.New("item not found")
+		return "", fmt.Errorf("item not found")
 	}
 
 	return s.List[ID], nil
@@ -27,7 +26,7 @@ func (s Storage) Get(ID string) (string, error) {
 func (s Storage) Add(ID string, URL string) error {
 	existing, _ := s.Get(ID)
 	if existing != "" {
-		return errors.New(fmt.Sprintf("item with ID %s already exsists", ID))
+		return fmt.Errorf("item with ID %s already exsists", ID)
 	}
 	s.List[ID] = URL
 
