@@ -48,8 +48,8 @@ func TestGetShortLink(t *testing.T) {
 			req, err := http.NewRequest(http.MethodGet, testCase.request, nil)
 			r.ServeHTTP(w, req)
 
-			assert.Equal(t, testCase.want, w.Code)
 			assert.NoError(t, err)
+			assert.Equal(t, testCase.want, w.Code)
 		})
 	}
 }
@@ -66,6 +66,6 @@ func TestCreateShortLink(t *testing.T) {
 	req, err := http.NewRequest(http.MethodPost, "/", strings.NewReader("https://youtube.com"))
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, w.Code)
 }
