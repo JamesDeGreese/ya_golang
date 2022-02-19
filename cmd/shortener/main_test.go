@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/JamesDeGreese/ya_golang/internal/app"
+	"github.com/JamesDeGreese/ya_golang/internal/app/handlers"
 	"github.com/JamesDeGreese/ya_golang/internal/app/router"
 	"github.com/JamesDeGreese/ya_golang/internal/app/storage"
 	"github.com/stretchr/testify/assert"
@@ -64,6 +67,24 @@ func TestCreateShortLink(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodPost, "/", strings.NewReader("https://youtube.com"))
+	r.ServeHTTP(w, req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestCreateShortLinkJson(t *testing.T) {
+	c := app.Config{
+		Host: "http://localhost",
+		Port: 8080,
+	}
+	s := storage.ConstructStorage()
+	r := router.SetupRouter(c, s)
+
+	w := httptest.NewRecorder()
+	rBody, _ := json.Marshal(handlers.PostJsonRequest{Url: "https://youtube.com"})
+	b := bytes.NewBuffer(rBody)
+	req, err := http.NewRequest(http.MethodPost, "/api/shorten", b)
 	r.ServeHTTP(w, req)
 
 	assert.NoError(t, err)
