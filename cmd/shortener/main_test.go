@@ -82,7 +82,7 @@ func TestCreateShortLinkJson(t *testing.T) {
 	r := router.SetupRouter(c, s)
 
 	w := httptest.NewRecorder()
-	rBody, _ := json.Marshal(handlers.PostJsonRequest{Url: "https://youtube.com"})
+	rBody, _ := json.Marshal(handlers.PostJsonRequest{URL: "https://youtube.com"})
 	b := bytes.NewBuffer(rBody)
 	req, err := http.NewRequest(http.MethodPost, "/api/shorten", b)
 	r.ServeHTTP(w, req)

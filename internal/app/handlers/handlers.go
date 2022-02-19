@@ -63,7 +63,7 @@ func (h Handler) PostHandlerJson(c *gin.Context) {
 	}
 
 	urlID := uuid.NewV4().String()
-	err = h.Storage.Add(urlID, req.Url)
+	err = h.Storage.Add(urlID, req.URL)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "")
 		return
