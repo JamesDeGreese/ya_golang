@@ -73,7 +73,7 @@ func TestCreateShortLink(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
-func TestCreateShortLinkJson(t *testing.T) {
+func TestCreateShortLinkJSON(t *testing.T) {
 	c := app.Config{
 		Host: "http://localhost",
 		Port: 8080,
@@ -82,7 +82,7 @@ func TestCreateShortLinkJson(t *testing.T) {
 	r := router.SetupRouter(c, s)
 
 	w := httptest.NewRecorder()
-	rBody, _ := json.Marshal(handlers.PostJsonRequest{URL: "https://youtube.com"})
+	rBody, _ := json.Marshal(handlers.PostJSONRequest{URL: "https://youtube.com"})
 	b := bytes.NewBuffer(rBody)
 	req, err := http.NewRequest(http.MethodPost, "/api/shorten", b)
 	r.ServeHTTP(w, req)

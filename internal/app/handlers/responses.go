@@ -1,5 +1,5 @@
 package handlers
 
-type PostJsonResponse struct {
+type PostJSONResponse struct {
 	Result string `json:"result"`
 }

@@ -1,5 +1,5 @@
 package handlers
 
-type PostJsonRequest struct {
+type PostJSONRequest struct {
 	URL string `json:"url"`
 }

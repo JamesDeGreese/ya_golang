@@ -53,8 +53,8 @@ func (h Handler) PostHandler(c *gin.Context) {
 	c.String(http.StatusCreated, "%s", short)
 }
 
-func (h Handler) PostHandlerJson(c *gin.Context) {
-	var req PostJsonRequest
+func (h Handler) PostHandlerJSON(c *gin.Context) {
+	var req PostJSONRequest
 
 	err := json.NewDecoder(c.Request.Body).Decode(&req)
 	if err != nil {
@@ -69,7 +69,7 @@ func (h Handler) PostHandlerJson(c *gin.Context) {
 		return
 	}
 
-	res := PostJsonResponse{Result: fmt.Sprintf("%s:%d/%s", h.Config.Host, h.Config.Port, urlID)}
+	res := PostJSONResponse{Result: fmt.Sprintf("%s:%d/%s", h.Config.Host, h.Config.Port, urlID)}
 
 	c.JSON(http.StatusCreated, res)
 }
