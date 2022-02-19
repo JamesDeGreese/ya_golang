@@ -12,16 +12,18 @@ import (
 	"github.com/JamesDeGreese/ya_golang/internal/app/handlers"
 	"github.com/JamesDeGreese/ya_golang/internal/app/router"
 	"github.com/JamesDeGreese/ya_golang/internal/app/storage"
+	"github.com/caarlos0/env/v6"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetShortLink(t *testing.T) {
-	c := app.Config{
-		Host: "http://localhost",
-		Port: 8080,
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		return
 	}
 	s := storage.ConstructStorage()
-	err := s.Add("123", "https://example.org")
+	err = s.Add("123", "https://example.org")
 	if err != nil {
 		return
 	}
@@ -58,9 +60,10 @@ func TestGetShortLink(t *testing.T) {
 }
 
 func TestCreateShortLink(t *testing.T) {
-	c := app.Config{
-		Host: "http://localhost",
-		Port: 8080,
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		return
 	}
 	s := storage.ConstructStorage()
 	r := router.SetupRouter(c, s)
@@ -74,9 +77,10 @@ func TestCreateShortLink(t *testing.T) {
 }
 
 func TestCreateShortLinkJSON(t *testing.T) {
-	c := app.Config{
-		Host: "http://localhost",
-		Port: 8080,
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		return
 	}
 	s := storage.ConstructStorage()
 	r := router.SetupRouter(c, s)
