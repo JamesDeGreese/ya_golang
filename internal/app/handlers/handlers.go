@@ -48,7 +48,7 @@ func (h Handler) PostHandler(c *gin.Context) {
 		return
 	}
 
-	short := fmt.Sprintf("%s:%d/%s", h.Config.Host, h.Config.Port, urlID)
+	short := fmt.Sprintf("%s/%s", h.Config.BaseURL, urlID)
 
 	c.String(http.StatusCreated, "%s", short)
 }
@@ -69,7 +69,7 @@ func (h Handler) PostHandlerJSON(c *gin.Context) {
 		return
 	}
 
-	res := PostJSONResponse{Result: fmt.Sprintf("%s:%d/%s", h.Config.Host, h.Config.Port, urlID)}
+	res := PostJSONResponse{Result: fmt.Sprintf("%s/%s", h.Config.BaseURL, urlID)}
 
 	c.JSON(http.StatusCreated, res)
 }
