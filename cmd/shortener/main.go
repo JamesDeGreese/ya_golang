@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,6 +18,12 @@ func main() {
 	if err != nil {
 		return
 	}
+
+	flag.StringVar(&c.Address, "a", c.Address, "a 127.0.0.1:8080")
+	flag.StringVar(&c.BaseURL, "b", c.BaseURL, "b https://example.org")
+	flag.StringVar(&c.FileStoragePath, "f", c.FileStoragePath, "f /tmp/storage")
+	flag.Parse()
+
 	s := storage.ConstructStorage(c)
 	r := router.SetupRouter(c, s)
 
