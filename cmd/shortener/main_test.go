@@ -22,7 +22,7 @@ func TestGetShortLink(t *testing.T) {
 	if err != nil {
 		return
 	}
-	s := storage.ConstructStorage()
+	s := storage.ConstructStorage(c)
 	err = s.Add("123", "https://example.org")
 	if err != nil {
 		return
@@ -65,7 +65,7 @@ func TestCreateShortLink(t *testing.T) {
 	if err != nil {
 		return
 	}
-	s := storage.ConstructStorage()
+	s := storage.ConstructStorage(c)
 	r := router.SetupRouter(c, s)
 
 	w := httptest.NewRecorder()
@@ -82,7 +82,7 @@ func TestCreateShortLinkJSON(t *testing.T) {
 	if err != nil {
 		return
 	}
-	s := storage.ConstructStorage()
+	s := storage.ConstructStorage(c)
 	r := router.SetupRouter(c, s)
 
 	w := httptest.NewRecorder()
