@@ -1,24 +1,29 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/JamesDeGreese/ya_golang/internal/app"
+	"github.com/JamesDeGreese/ya_golang/internal/app/handlers"
 	"github.com/JamesDeGreese/ya_golang/internal/app/router"
 	"github.com/JamesDeGreese/ya_golang/internal/app/storage"
+	"github.com/caarlos0/env/v6"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetShortLink(t *testing.T) {
-	c := app.Config{
-		Host: "http://localhost",
-		Port: 8080,
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		return
 	}
-	s := storage.ConstructStorage()
-	err := s.Add("123", "https://example.org")
+	s := storage.ConstructStorage(c)
+	err = s.Add("123", "https://example.org")
 	if err != nil {
 		return
 	}
@@ -55,15 +60,35 @@ func TestGetShortLink(t *testing.T) {
 }
 
 func TestCreateShortLink(t *testing.T) {
-	c := app.Config{
-		Host: "http://localhost",
-		Port: 8080,
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		return
 	}
-	s := storage.ConstructStorage()
+	s := storage.ConstructStorage(c)
 	r := router.SetupRouter(c, s)
 
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodPost, "/", strings.NewReader("https://youtube.com"))
+	r.ServeHTTP(w, req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestCreateShortLinkJSON(t *testing.T) {
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		return
+	}
+	s := storage.ConstructStorage(c)
+	r := router.SetupRouter(c, s)
+
+	w := httptest.NewRecorder()
+	rBody, _ := json.Marshal(handlers.PostJSONRequest{URL: "https://youtube.com"})
+	b := bytes.NewBuffer(rBody)
+	req, err := http.NewRequest(http.MethodPost, "/api/shorten", b)
 	r.ServeHTTP(w, req)
 
 	assert.NoError(t, err)

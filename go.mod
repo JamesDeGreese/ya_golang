@@ -5,6 +5,7 @@ go 1.17
 require github.com/satori/go.uuid v1.2.0
 
 require (
+	github.com/caarlos0/env/v6 v6.9.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gin-gonic/gin v1.7.7 // indirect

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -41,9 +42,34 @@ func (h Handler) PostHandler(c *gin.Context) {
 	}
 
 	urlID := uuid.NewV4().String()
-	h.Storage.Add(urlID, string(body))
+	err = h.Storage.Add(urlID, string(body))
+	if err != nil {
+		c.String(http.StatusInternalServerError, "")
+		return
+	}
 
-	short := fmt.Sprintf("%s:%d/%s", h.Config.Host, h.Config.Port, urlID)
+	short := fmt.Sprintf("%s/%s", h.Config.BaseURL, urlID)
 
 	c.String(http.StatusCreated, "%s", short)
+}
+
+func (h Handler) PostHandlerJSON(c *gin.Context) {
+	var req PostJSONRequest
+
+	err := json.NewDecoder(c.Request.Body).Decode(&req)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "")
+		return
+	}
+
+	urlID := uuid.NewV4().String()
+	err = h.Storage.Add(urlID, req.URL)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "")
+		return
+	}
+
+	res := PostJSONResponse{Result: fmt.Sprintf("%s/%s", h.Config.BaseURL, urlID)}
+
+	c.JSON(http.StatusCreated, res)
 }

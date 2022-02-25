@@ -1,7 +1,11 @@
 package storage
 
 import (
+	"encoding/csv"
 	"fmt"
+	"os"
+
+	"github.com/JamesDeGreese/ya_golang/internal/app"
 )
 
 type Repository interface {
@@ -33,8 +37,47 @@ func (s Storage) Add(ID string, URL string) error {
 	return nil
 }
 
-func ConstructStorage() *Storage {
-	return &Storage{
+func ConstructStorage(c app.Config) *Storage {
+	s := &Storage{
 		List: make(map[string]string),
 	}
+
+	file, err := os.OpenFile(c.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0664)
+	if err != nil {
+		return s
+	}
+	defer file.Close()
+
+	records, err := csv.NewReader(file).ReadAll()
+	if err != nil {
+		return s
+	}
+
+	for _, line := range records {
+		s.List[line[0]] = line[1]
+	}
+
+	return s
+}
+
+func DestructStorage(c app.Config, s *Storage) {
+	file, err := os.OpenFile(c.FileStoragePath, os.O_WRONLY, 0664)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+
+	var pairs [][]string
+	for key, value := range s.List {
+		pairs = append(pairs, []string{key, value})
+	}
+
+	err = writer.WriteAll(pairs)
+	if err != nil {
+		return
+	}
+
+	writer.Flush()
 }
