@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,7 +19,6 @@ func Gzip() gin.HandlerFunc {
 			if c.Request.Body != nil {
 				gzreader, err := gzip.NewReader(c.Request.Body)
 				if err != nil {
-					c.String(http.StatusInternalServerError, "")
 					return
 				}
 				gzreader.Close()
