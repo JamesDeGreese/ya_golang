@@ -156,7 +156,7 @@ func TestCreateShortLinkGzip(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodPost, "/", bytes.NewReader(b.Bytes()))
-	req.Header.Set("Accept-Encoding", "gzip")
+	req.Header.Set("Content-Encoding", "gzip")
 	r.ServeHTTP(w, req)
 
 	assert.NoError(t, err)
@@ -180,7 +180,7 @@ func TestCreateShortLinkJSONGzip(t *testing.T) {
 	gzw.Write(rBody)
 	gzw.Close()
 	req, err := http.NewRequest(http.MethodPost, "/api/shorten", bytes.NewReader(b.Bytes()))
-	req.Header.Set("Accept-Encoding", "gzip")
+	req.Header.Set("Content-Encoding", "gzip")
 	r.ServeHTTP(w, req)
 
 	res := w.Body.String()
