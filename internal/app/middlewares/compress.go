@@ -20,17 +20,20 @@ func Gzip() gin.HandlerFunc {
 			return
 		}
 
-		gzreader, err := gzip.NewReader(c.Request.Body)
-		if err != nil {
-			c.String(http.StatusInternalServerError, "")
-			return
+		if c.Request.Body != nil {
+			gzreader, err := gzip.NewReader(c.Request.Body)
+			if err != nil {
+				c.String(http.StatusInternalServerError, "")
+				return
+			}
+			gzreader.Close()
+			c.Request.Body = ioutil.NopCloser(gzreader)
 		}
-		gzreader.Close()
+
 		gzwriter := gzip.NewWriter(c.Writer)
 
 		c.Header("Content-Encoding", "gzip")
 		c.Header("Vary", "Accept-Encoding")
-		c.Request.Body = ioutil.NopCloser(gzreader)
 		c.Writer = &gzipResponseWriter{c.Writer, gzwriter}
 
 		defer func() {

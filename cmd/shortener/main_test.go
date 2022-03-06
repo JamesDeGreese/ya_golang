@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -20,12 +21,12 @@ func TestGetShortLink(t *testing.T) {
 	c := app.Config{}
 	err := env.Parse(&c)
 	if err != nil {
-		return
+		t.FailNow()
 	}
 	s := storage.ConstructStorage(c)
 	err = s.Add("123", "https://example.org")
 	if err != nil {
-		return
+		t.FailNow()
 	}
 
 	tests := []struct {
@@ -63,7 +64,7 @@ func TestCreateShortLink(t *testing.T) {
 	c := app.Config{}
 	err := env.Parse(&c)
 	if err != nil {
-		return
+		t.FailNow()
 	}
 	s := storage.ConstructStorage(c)
 	r := router.SetupRouter(c, s)
@@ -80,7 +81,7 @@ func TestCreateShortLinkJSON(t *testing.T) {
 	c := app.Config{}
 	err := env.Parse(&c)
 	if err != nil {
-		return
+		t.FailNow()
 	}
 	s := storage.ConstructStorage(c)
 	r := router.SetupRouter(c, s)
@@ -93,4 +94,97 @@ func TestCreateShortLinkJSON(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestGetShortLinkGzip(t *testing.T) {
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		t.FailNow()
+	}
+	s := storage.ConstructStorage(c)
+	err = s.Add("123", "https://example.org")
+	if err != nil {
+		t.FailNow()
+	}
+
+	tests := []struct {
+		name    string
+		method  string
+		request string
+		want    int
+	}{
+		{
+			name:    "Test 200",
+			request: "/123",
+			want:    http.StatusTemporaryRedirect,
+		},
+		{
+			name:    "Test 404",
+			request: "/1234",
+			want:    http.StatusNotFound,
+		},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			r := router.SetupRouter(c, s)
+
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest(http.MethodGet, testCase.request, nil)
+			req.Header.Set("Accept-Encoding", "gzip")
+			r.ServeHTTP(w, req)
+
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.want, w.Code)
+		})
+	}
+}
+
+func TestCreateShortLinkGzip(t *testing.T) {
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		return
+	}
+	s := storage.ConstructStorage(c)
+	r := router.SetupRouter(c, s)
+
+	var b bytes.Buffer
+	gzw := gzip.NewWriter(&b)
+	gzw.Write([]byte("https://youtube.com"))
+	gzw.Close()
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/", bytes.NewReader(b.Bytes()))
+	req.Header.Set("Accept-Encoding", "gzip")
+	r.ServeHTTP(w, req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.NotEmpty(t, http.StatusCreated, w.Body.String())
+}
+
+func TestCreateShortLinkJSONGzip(t *testing.T) {
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		t.FailNow()
+	}
+	s := storage.ConstructStorage(c)
+	r := router.SetupRouter(c, s)
+
+	w := httptest.NewRecorder()
+	rBody, _ := json.Marshal(handlers.PostJSONRequest{URL: "https://youtube.com"})
+	var b bytes.Buffer
+	gzw := gzip.NewWriter(&b)
+	gzw.Write(rBody)
+	gzw.Close()
+	req, err := http.NewRequest(http.MethodPost, "/api/shorten", bytes.NewReader(b.Bytes()))
+	req.Header.Set("Accept-Encoding", "gzip")
+	r.ServeHTTP(w, req)
+
+	res := w.Body.String()
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.NotEmpty(t, http.StatusCreated, res)
 }
