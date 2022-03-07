@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"compress/gzip"
-	"io/ioutil"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,20 +20,20 @@ func Gzip() gin.HandlerFunc {
 					return
 				}
 				gzreader.Close()
-				c.Request.Body = ioutil.NopCloser(gzreader)
+				c.Request.Body = gzreader
 			}
 		}
 
-		if c.Request.Header.Get("Accept-Encoding") == "gzip" {
-			gzwriter := gzip.NewWriter(c.Writer)
-
-			c.Header("Content-Encoding", "gzip")
-			c.Writer = &gzipResponseWriter{c.Writer, gzwriter}
-
-			defer func() {
-				gzwriter.Close()
-			}()
-		}
+		//if c.Request.Header.Get("Accept-Encoding") == "gzip" {
+		//	gzwriter := gzip.NewWriter(c.Writer)
+		//
+		//	c.Header("Content-Encoding", "gzip")
+		//	c.Writer = &gzipResponseWriter{c.Writer, gzwriter}
+		//
+		//	defer func() {
+		//		gzwriter.Close()
+		//	}()
+		//}
 
 		c.Next()
 	}
