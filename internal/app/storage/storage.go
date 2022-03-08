@@ -39,7 +39,11 @@ func (s Storage) AddURL(ID string, URL string, userID string) error {
 		return fmt.Errorf("item with ID %s already exsists", ID)
 	}
 	s.ShortenURLs[ID] = URL
-	_ = append(s.UserLinks[userID], ID)
+	userURLs := s.GetUserURLs(userID)
+	if len(userURLs) == 0 {
+		s.UserLinks[userID] = make([]string, 0)
+	}
+	s.UserLinks[userID] = append(s.UserLinks[userID], ID)
 
 	return nil
 }
@@ -47,6 +51,7 @@ func (s Storage) AddURL(ID string, URL string, userID string) error {
 func InitStorage(c app.Config) *Storage {
 	s := &Storage{
 		ShortenURLs: make(map[string]string),
+		UserLinks:   make(map[string][]string),
 	}
 
 	file, err := os.OpenFile(c.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0664)
