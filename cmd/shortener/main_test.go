@@ -220,7 +220,7 @@ func TestGetUserLinks(t *testing.T) {
 		Value:    url.QueryEscape(userIDEnc),
 		MaxAge:   3600,
 		Path:     "/",
-		Domain:   c.BaseURL,
+		Domain:   c.Address,
 		Secure:   false,
 		HttpOnly: false,
 	})

@@ -18,7 +18,7 @@ func AuthCookieMiddleware(cf Config) gin.HandlerFunc {
 				c.String(http.StatusInternalServerError, "")
 				return
 			}
-			c.SetCookie("user-id", encID, 3600, "/", cf.BaseURL, false, false)
+			c.SetCookie("user-id", encID, 3600, "/", cf.Address, false, false)
 		}
 		c.Next()
 	}
