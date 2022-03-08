@@ -92,8 +92,10 @@ func TestCreateShortLinkJSON(t *testing.T) {
 	req, err := http.NewRequest(http.MethodPost, "/api/shorten", b)
 	r.ServeHTTP(w, req)
 
+	res := w.Body.String()
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.NotEmpty(t, res)
 }
 
 func TestGetShortLinkGzip(t *testing.T) {
@@ -161,7 +163,7 @@ func TestCreateShortLinkGzip(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, w.Code)
-	assert.NotEmpty(t, http.StatusCreated, w.Body.String())
+	assert.NotEmpty(t, w.Body.String())
 }
 
 func TestCreateShortLinkJSONGzip(t *testing.T) {
@@ -181,10 +183,11 @@ func TestCreateShortLinkJSONGzip(t *testing.T) {
 	gzw.Close()
 	req, err := http.NewRequest(http.MethodPost, "/api/shorten", bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Accept-Encoding", "gzip")
 	r.ServeHTTP(w, req)
 
 	res := w.Body.String()
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, w.Code)
-	assert.NotEmpty(t, http.StatusCreated, res)
+	assert.NotEmpty(t, res)
 }
