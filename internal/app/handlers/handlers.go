@@ -75,7 +75,7 @@ func (h Handler) PostHandlerJSON(c *gin.Context) {
 func (h Handler) UserURLsHandler(c *gin.Context) {
 	userIDEnc, err := c.Cookie("user-id")
 	if err != nil {
-		c.JSON(http.StatusNoContent, "")
+		c.JSON(http.StatusNoContent, "{}")
 		return
 	}
 	userIDDec, err := app.Decrypt([]byte(userIDEnc), h.Config.AppKey)
@@ -86,7 +86,7 @@ func (h Handler) UserURLsHandler(c *gin.Context) {
 
 	userURLs := h.Storage.GetUserURLs(userIDDec)
 	if len(userURLs) == 0 {
-		c.JSON(http.StatusNoContent, "")
+		c.JSON(http.StatusNoContent, "{}")
 		return
 	}
 
