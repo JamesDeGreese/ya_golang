@@ -92,11 +92,11 @@ func (h Handler) UserURLsHandler(c *gin.Context) {
 
 	var res []UserLinkItem
 
-	for _, element := range userURLs {
-		URL, _ := h.Storage.GetURL(element)
+	for _, shortID := range userURLs {
+		URL, _ := h.Storage.GetURL(shortID)
 		res = append(res, UserLinkItem{
-			fmt.Sprintf("%s/%s", h.Config.BaseURL, element),
-			fmt.Sprintf("%s/%s", h.Config.BaseURL, URL),
+			fmt.Sprintf("%s/%s", h.Config.BaseURL, shortID),
+			URL,
 		})
 	}
 
