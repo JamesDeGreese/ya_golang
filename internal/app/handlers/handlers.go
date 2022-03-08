@@ -25,7 +25,7 @@ func (h Handler) GetHandler(c *gin.Context) {
 		return
 	}
 
-	fullURL, err := h.Storage.Get(ID)
+	fullURL, err := h.Storage.GetURL(ID)
 	if err != nil {
 		c.String(http.StatusNotFound, "")
 		return
@@ -41,8 +41,7 @@ func (h Handler) PostHandler(c *gin.Context) {
 		return
 	}
 
-	urlID := uuid.NewV4().String()
-	err = h.Storage.Add(urlID, string(body))
+	urlID, err := storeNewLink(h, c, string(body))
 	if err != nil {
 		c.String(http.StatusInternalServerError, "")
 		return
@@ -62,8 +61,7 @@ func (h Handler) PostHandlerJSON(c *gin.Context) {
 		return
 	}
 
-	urlID := uuid.NewV4().String()
-	err = h.Storage.Add(urlID, req.URL)
+	urlID, err := storeNewLink(h, c, req.URL)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "")
 		return
@@ -72,4 +70,58 @@ func (h Handler) PostHandlerJSON(c *gin.Context) {
 	res := PostJSONResponse{Result: fmt.Sprintf("%s/%s", h.Config.BaseURL, urlID)}
 
 	c.JSON(http.StatusCreated, res)
+}
+
+func (h Handler) UserURLsHandler(c *gin.Context) {
+	userIDEnc, err := c.Cookie("user-id")
+	if err != nil {
+		c.String(http.StatusInternalServerError, "")
+		return
+	}
+	userIDDec, err := app.Decrypt([]byte(userIDEnc), h.Config.AppKey)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "")
+		return
+	}
+
+	userURLs := h.Storage.GetUserURLs(userIDDec)
+	if len(userURLs) == 0 {
+		c.String(http.StatusNoContent, "")
+		return
+	}
+
+	var res []UserLinkItem
+
+	for index, element := range userURLs {
+		URL, _ := h.Storage.GetURL(element)
+		res[index] = UserLinkItem{
+			fmt.Sprintf("%s/%s", h.Config.BaseURL, element),
+			fmt.Sprintf("%s/%s", h.Config.BaseURL, URL),
+		}
+	}
+
+	c.JSON(http.StatusOK, res)
+}
+
+func storeNewLink(h Handler, c *gin.Context, URL string) (string, error) {
+	userIDEnc, _ := c.Cookie("user-id")
+	urlID := uuid.NewV4().String()
+
+	if userIDEnc == "" {
+		err := h.Storage.AddURL(urlID, URL, "no-user")
+		if err != nil {
+			return "", err
+		}
+	} else {
+		userIDDec, err := app.Decrypt([]byte(userIDEnc), h.Config.AppKey)
+		if err != nil {
+			return "", err
+		}
+		err = h.Storage.AddURL(urlID, URL, userIDDec)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return urlID, nil
 }

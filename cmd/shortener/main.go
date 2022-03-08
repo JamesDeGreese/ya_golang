@@ -24,14 +24,14 @@ func main() {
 	flag.StringVar(&c.FileStoragePath, "f", c.FileStoragePath, "f /tmp/storage")
 	flag.Parse()
 
-	s := storage.ConstructStorage(c)
+	s := storage.InitStorage(c)
 	r := router.SetupRouter(c, s)
 
 	ch := make(chan os.Signal)
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
 		<-ch
-		storage.DestructStorage(c, s)
+		storage.CleanupStorage(c, s)
 		os.Exit(0)
 	}()
 

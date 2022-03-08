@@ -11,6 +11,7 @@ import (
 func SetupRouter(c app.Config, s *storage.Storage) *gin.Engine {
 	r := gin.Default()
 	r.Use(gzip.Gzip(gzip.BestSpeed, gzip.WithDecompressFn(gzip.DefaultDecompressHandle)))
+	r.Use(app.AuthCookieMiddleware(c))
 	h := handlers.Handler{
 		Config:  c,
 		Storage: s,
@@ -18,5 +19,6 @@ func SetupRouter(c app.Config, s *storage.Storage) *gin.Engine {
 	r.GET("/:ID", h.GetHandler)
 	r.POST("/", h.PostHandler)
 	r.POST("/api/shorten", h.PostHandlerJSON)
+	r.GET("/api/user/urls", h.UserURLsHandler)
 	return r
 }

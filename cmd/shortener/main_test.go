@@ -23,8 +23,8 @@ func TestGetShortLink(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	s := storage.ConstructStorage(c)
-	err = s.Add("123", "https://example.org")
+	s := storage.InitStorage(c)
+	err = s.AddURL("123", "https://example.org", "12345")
 	if err != nil {
 		t.FailNow()
 	}
@@ -66,7 +66,7 @@ func TestCreateShortLink(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	s := storage.ConstructStorage(c)
+	s := storage.InitStorage(c)
 	r := router.SetupRouter(c, s)
 
 	w := httptest.NewRecorder()
@@ -83,7 +83,7 @@ func TestCreateShortLinkJSON(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	s := storage.ConstructStorage(c)
+	s := storage.InitStorage(c)
 	r := router.SetupRouter(c, s)
 
 	w := httptest.NewRecorder()
@@ -104,8 +104,8 @@ func TestGetShortLinkGzip(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	s := storage.ConstructStorage(c)
-	err = s.Add("123", "https://example.org")
+	s := storage.InitStorage(c)
+	err = s.AddURL("123", "https://example.org", "12345")
 	if err != nil {
 		t.FailNow()
 	}
@@ -148,7 +148,7 @@ func TestCreateShortLinkGzip(t *testing.T) {
 	if err != nil {
 		return
 	}
-	s := storage.ConstructStorage(c)
+	s := storage.InitStorage(c)
 	r := router.SetupRouter(c, s)
 
 	var b bytes.Buffer
@@ -172,7 +172,7 @@ func TestCreateShortLinkJSONGzip(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	s := storage.ConstructStorage(c)
+	s := storage.InitStorage(c)
 	r := router.SetupRouter(c, s)
 
 	w := httptest.NewRecorder()
