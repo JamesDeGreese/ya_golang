@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/JamesDeGreese/ya_golang/internal/app/router"
 	"github.com/JamesDeGreese/ya_golang/internal/app/storage"
 	"github.com/caarlos0/env/v6"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,8 +25,8 @@ func TestGetShortLink(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	s := storage.ConstructStorage(c)
-	err = s.Add("123", "https://example.org")
+	s := storage.InitStorage(c)
+	err = s.AddURL("123", "https://example.org", "12345")
 	if err != nil {
 		t.FailNow()
 	}
@@ -66,7 +68,7 @@ func TestCreateShortLink(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	s := storage.ConstructStorage(c)
+	s := storage.InitStorage(c)
 	r := router.SetupRouter(c, s)
 
 	w := httptest.NewRecorder()
@@ -83,7 +85,7 @@ func TestCreateShortLinkJSON(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	s := storage.ConstructStorage(c)
+	s := storage.InitStorage(c)
 	r := router.SetupRouter(c, s)
 
 	w := httptest.NewRecorder()
@@ -104,8 +106,8 @@ func TestGetShortLinkGzip(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	s := storage.ConstructStorage(c)
-	err = s.Add("123", "https://example.org")
+	s := storage.InitStorage(c)
+	err = s.AddURL("123", "https://example.org", "12345")
 	if err != nil {
 		t.FailNow()
 	}
@@ -148,7 +150,7 @@ func TestCreateShortLinkGzip(t *testing.T) {
 	if err != nil {
 		return
 	}
-	s := storage.ConstructStorage(c)
+	s := storage.InitStorage(c)
 	r := router.SetupRouter(c, s)
 
 	var b bytes.Buffer
@@ -172,7 +174,7 @@ func TestCreateShortLinkJSONGzip(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	s := storage.ConstructStorage(c)
+	s := storage.InitStorage(c)
 	r := router.SetupRouter(c, s)
 
 	w := httptest.NewRecorder()
@@ -190,4 +192,62 @@ func TestCreateShortLinkJSONGzip(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.NotEmpty(t, res)
+}
+
+func TestGetUserLinks(t *testing.T) {
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		t.FailNow()
+	}
+	s := storage.InitStorage(c)
+	userID := uuid.NewV4().String()
+	userIDEnc, err := app.Encrypt(userID, c.AppKey)
+	if err != nil {
+		t.FailNow()
+	}
+	err = s.AddURL("123", "https://example.org", userID)
+	if err != nil {
+		t.FailNow()
+	}
+
+	r := router.SetupRouter(c, s)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/api/user/urls", nil)
+	req.AddCookie(&http.Cookie{
+		Name:     "user-id",
+		Value:    url.QueryEscape(userIDEnc),
+		MaxAge:   3600,
+		Path:     "/",
+		Domain:   c.Address,
+		Secure:   false,
+		HttpOnly: false,
+	})
+	r.ServeHTTP(w, req)
+
+	res := w.Body.String()
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NotEmpty(t, res)
+}
+
+func TestGetUserLinksEmpty(t *testing.T) {
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		t.FailNow()
+	}
+	s := storage.InitStorage(c)
+
+	r := router.SetupRouter(c, s)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/api/user/urls", nil)
+	r.ServeHTTP(w, req)
+
+	res := w.Body.String()
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNoContent, w.Code)
+	assert.Empty(t, res)
 }
