@@ -75,29 +75,29 @@ func (h Handler) PostHandlerJSON(c *gin.Context) {
 func (h Handler) UserURLsHandler(c *gin.Context) {
 	userIDEnc, err := c.Cookie("user-id")
 	if err != nil {
-		c.String(http.StatusInternalServerError, "")
+		c.JSON(http.StatusInternalServerError, "")
 		return
 	}
 	userIDDec, err := app.Decrypt([]byte(userIDEnc), h.Config.AppKey)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "")
+		c.JSON(http.StatusInternalServerError, "")
 		return
 	}
 
 	userURLs := h.Storage.GetUserURLs(userIDDec)
 	if len(userURLs) == 0 {
-		c.String(http.StatusNoContent, "")
+		c.JSON(http.StatusNoContent, "")
 		return
 	}
 
 	var res []UserLinkItem
 
-	for index, element := range userURLs {
+	for _, element := range userURLs {
 		URL, _ := h.Storage.GetURL(element)
-		res[index] = UserLinkItem{
+		_ = append(res, UserLinkItem{
 			fmt.Sprintf("%s/%s", h.Config.BaseURL, element),
 			fmt.Sprintf("%s/%s", h.Config.BaseURL, URL),
-		}
+		})
 	}
 
 	c.JSON(http.StatusOK, res)
