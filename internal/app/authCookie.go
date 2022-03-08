@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"net/http"
+	"net/url"
 
 	"github.com/gin-gonic/gin"
 	uuid "github.com/satori/go.uuid"
@@ -18,6 +19,15 @@ func AuthCookieMiddleware(cf Config) gin.HandlerFunc {
 				c.String(http.StatusInternalServerError, "")
 				return
 			}
+			c.Request.AddCookie(&http.Cookie{
+				Name:     "user-id",
+				Value:    url.QueryEscape(encID),
+				MaxAge:   3600,
+				Path:     "/",
+				Domain:   cf.Address,
+				Secure:   false,
+				HttpOnly: false,
+			})
 			c.SetCookie("user-id", encID, 3600, "/", cf.Address, false, false)
 		}
 		c.Next()
