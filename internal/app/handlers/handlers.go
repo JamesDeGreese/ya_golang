@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -101,6 +102,17 @@ func (h Handler) UserURLsHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, res)
+}
+
+func (h Handler) DBPingHandler(c *gin.Context) {
+	var res string
+	err := h.Storage.DB().QueryRow(context.Background(), "select 'Hello, world!'").Scan(&res)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "")
+		return
+	}
+
+	c.String(http.StatusOK, "")
 }
 
 func storeNewLink(h Handler, c *gin.Context, URL string) (string, error) {

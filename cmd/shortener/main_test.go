@@ -251,3 +251,40 @@ func TestGetUserLinksEmpty(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, w.Code)
 	assert.Empty(t, res)
 }
+
+func TestPingDBSuccess(t *testing.T) {
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		t.FailNow()
+	}
+	s := storage.InitStorage(c)
+
+	r := router.SetupRouter(c, s)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/ping", nil)
+	r.ServeHTTP(w, req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestPingDBFail(t *testing.T) {
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		t.FailNow()
+	}
+	s := storage.InitStorage(c)
+	storage.CleanupStorage(c, s)
+
+	r := router.SetupRouter(c, s)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/ping", nil)
+	r.ServeHTTP(w, req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
