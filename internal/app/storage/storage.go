@@ -70,12 +70,6 @@ func InitStorage(c app.Config) *Storage {
 		}
 
 		s.DBConn = conn
-		defer func(conn *pgx.Conn, ctx context.Context) {
-			err := conn.Close(ctx)
-			if err != nil {
-				panic(err)
-			}
-		}(conn, context.Background())
 	}
 
 	file, err := os.OpenFile(c.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0664)
@@ -116,4 +110,5 @@ func CleanupStorage(c app.Config, s *Storage) {
 	}
 
 	writer.Flush()
+	s.DBConn.Close(context.Background())
 }

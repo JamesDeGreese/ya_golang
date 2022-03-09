@@ -106,7 +106,7 @@ func (h Handler) UserURLsHandler(c *gin.Context) {
 
 func (h Handler) DBPingHandler(c *gin.Context) {
 	var res string
-	err := h.Storage.DB().QueryRow(context.Background(), "select 'Hello, world!'").Scan(res)
+	err := h.Storage.DB().QueryRow(context.Background(), "select 'Hello, world!'").Scan(&res)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "")
 		return
