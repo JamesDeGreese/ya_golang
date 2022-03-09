@@ -23,6 +23,7 @@ func main() {
 	flag.StringVar(&c.BaseURL, "b", c.BaseURL, "b https://example.org")
 	flag.StringVar(&c.FileStoragePath, "f", c.FileStoragePath, "f /tmp/storage")
 	flag.StringVar(&c.DatabaseDSN, "d", c.DatabaseDSN, "d postgres://username:password@host:port/database_name")
+	flag.StringVar(&c.DatabaseDSN, "database-dsn", c.DatabaseDSN, "d postgres://username:password@host:port/database_name")
 	flag.Parse()
 
 	s := storage.InitStorage(c)
