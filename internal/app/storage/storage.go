@@ -57,21 +57,25 @@ func (s Storage) DB() *pgx.Conn {
 }
 
 func InitStorage(c app.Config) *Storage {
-	conn, err := pgx.Connect(context.Background(), c.DatabaseDSN)
-	if err != nil {
-		panic(err)
-	}
-	defer func(conn *pgx.Conn, ctx context.Context) {
-		err := conn.Close(ctx)
-		if err != nil {
-			panic(err)
-		}
-	}(conn, context.Background())
-
 	s := &Storage{
 		ShortenURLs: make(map[string]string),
 		UserLinks:   make(map[string][]string),
-		DBConn:      conn,
+		DBConn:      nil,
+	}
+
+	if c.DatabaseDSN != "" {
+		conn, err := pgx.Connect(context.Background(), c.DatabaseDSN)
+		if err != nil {
+			panic(err)
+		}
+
+		s.DBConn = conn
+		defer func(conn *pgx.Conn, ctx context.Context) {
+			err := conn.Close(ctx)
+			if err != nil {
+				panic(err)
+			}
+		}(conn, context.Background())
 	}
 
 	file, err := os.OpenFile(c.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0664)
