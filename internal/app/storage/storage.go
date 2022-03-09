@@ -58,7 +58,15 @@ func (s Storage) DB() *pgx.Conn {
 
 func InitStorage(c app.Config) *Storage {
 	conn, err := pgx.Connect(context.Background(), c.DatabaseDSN)
-	defer conn.Close(context.Background())
+	if err != nil {
+		panic(err)
+	}
+	defer func(conn *pgx.Conn, ctx context.Context) {
+		err := conn.Close(ctx)
+		if err != nil {
+			panic(err)
+		}
+	}(conn, context.Background())
 
 	s := &Storage{
 		ShortenURLs: make(map[string]string),
