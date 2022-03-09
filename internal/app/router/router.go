@@ -20,5 +20,6 @@ func SetupRouter(c app.Config, s *storage.Storage) *gin.Engine {
 	r.POST("/", h.PostHandler)
 	r.POST("/api/shorten", h.PostHandlerJSON)
 	r.GET("/api/user/urls", h.UserURLsHandler)
+	r.GET("/ping", h.DBPingHandler)
 	return r
 }

@@ -1,22 +1,26 @@
 package storage
 
 import (
+	"context"
 	"encoding/csv"
 	"fmt"
 	"os"
 
 	"github.com/JamesDeGreese/ya_golang/internal/app"
+	"github.com/jackc/pgx/v4"
 )
 
 type Repository interface {
 	GetURL(ID string) (string, error)
 	AddURL(ID string, URL string, userID string) error
 	GetUserURLs(userID string) []string
+	DB() *pgx.Conn
 }
 
 type Storage struct {
 	ShortenURLs map[string]string
 	UserLinks   map[string][]string
+	DBConn      *pgx.Conn
 }
 
 func (s Storage) GetURL(ID string) (string, error) {
@@ -48,10 +52,18 @@ func (s Storage) AddURL(ID string, URL string, userID string) error {
 	return nil
 }
 
+func (s Storage) DB() *pgx.Conn {
+	return s.DBConn
+}
+
 func InitStorage(c app.Config) *Storage {
+	conn, err := pgx.Connect(context.Background(), c.DatabaseDSN)
+	defer conn.Close(context.Background())
+
 	s := &Storage{
 		ShortenURLs: make(map[string]string),
 		UserLinks:   make(map[string][]string),
+		DBConn:      conn,
 	}
 
 	file, err := os.OpenFile(c.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0664)
