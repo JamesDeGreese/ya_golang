@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(c app.Config, s *storage.Storage) *gin.Engine {
+func SetupRouter(c app.Config, s storage.Repository) *gin.Engine {
 	r := gin.Default()
 	r.Use(gzip.Gzip(gzip.BestSpeed, gzip.WithDecompressFn(gzip.DefaultDecompressHandle)))
 	r.Use(app.AuthCookieMiddleware(c))

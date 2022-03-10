@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -27,7 +26,7 @@ func (h Handler) GetHandler(c *gin.Context) {
 	}
 
 	fullURL, err := h.Storage.GetURL(ID)
-	if err != nil {
+	if fullURL == "" || err != nil {
 		c.String(http.StatusNotFound, "")
 		return
 	}
@@ -85,19 +84,17 @@ func (h Handler) UserURLsHandler(c *gin.Context) {
 		return
 	}
 
-	userURLs := h.Storage.GetUserURLs(userIDDec)
-	if len(userURLs) == 0 {
+	userLinks := h.Storage.GetUserURLs(userIDDec)
+	if len(userLinks) == 0 {
 		c.JSON(http.StatusNoContent, "{}")
 		return
 	}
 
-	var res []UserLinkItem
-
-	for _, shortID := range userURLs {
-		URL, _ := h.Storage.GetURL(shortID)
+	res := make([]UserLinkItem, 0)
+	for _, ul := range userLinks {
 		res = append(res, UserLinkItem{
-			fmt.Sprintf("%s/%s", h.Config.BaseURL, shortID),
-			URL,
+			fmt.Sprintf("%s/%s", h.Config.BaseURL, ul.ID),
+			ul.OriginalURL,
 		})
 	}
 
@@ -105,8 +102,7 @@ func (h Handler) UserURLsHandler(c *gin.Context) {
 }
 
 func (h Handler) DBPingHandler(c *gin.Context) {
-	var res string
-	err := h.Storage.DB().QueryRow(context.Background(), "select 'Hello, world!'").Scan(&res)
+	_, err := h.Storage.GetURL("fake_id")
 	if err != nil {
 		c.String(http.StatusInternalServerError, "")
 		return

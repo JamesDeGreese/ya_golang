@@ -33,7 +33,7 @@ func main() {
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
 		<-ch
-		storage.CleanupStorage(c, s)
+		s.CleanUp(c)
 		os.Exit(0)
 	}()
 
