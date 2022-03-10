@@ -277,7 +277,7 @@ func TestPingDBFail(t *testing.T) {
 		t.FailNow()
 	}
 	s := storage.InitStorage(c)
-	storage.CleanupStorage(c, s)
+	s.CleanUp(c)
 
 	r := router.SetupRouter(c, s)
 

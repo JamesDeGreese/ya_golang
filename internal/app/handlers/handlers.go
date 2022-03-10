@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -105,8 +104,7 @@ func (h Handler) UserURLsHandler(c *gin.Context) {
 }
 
 func (h Handler) DBPingHandler(c *gin.Context) {
-	var res string
-	err := h.Storage.DB().QueryRow(context.Background(), "select 'Hello, world!'").Scan(&res)
+	_, err := h.Storage.GetURL("fake_id")
 	if err != nil {
 		c.String(http.StatusInternalServerError, "")
 		return
