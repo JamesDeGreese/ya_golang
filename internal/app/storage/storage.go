@@ -13,7 +13,7 @@ import (
 type Repository interface {
 	GetURL(ID string) (string, error)
 	AddURL(ID string, URL string, userID string) error
-	GetUserURLs(userID string) []string
+	GetUserURLs(userID string) []ShortLink
 	CleanUp(c app.Config)
 }
 
@@ -26,6 +26,12 @@ type DBStorage struct {
 	DBConn *pgx.Conn
 }
 
+type ShortLink struct {
+	ID          string
+	OriginalURL string
+	UserID      string
+}
+
 func (s MemoryStorage) GetURL(ID string) (string, error) {
 	item := s.ShortenURLs[ID]
 
@@ -36,8 +42,23 @@ func (s MemoryStorage) GetURL(ID string) (string, error) {
 	return s.ShortenURLs[ID], nil
 }
 
-func (s MemoryStorage) GetUserURLs(userID string) []string {
-	return s.UserLinks[userID]
+func (s MemoryStorage) GetUserURLs(userID string) []ShortLink {
+	var res []ShortLink
+	userURLs := s.UserLinks[userID]
+	if len(userURLs) == 0 {
+		return res
+	}
+
+	for _, shortID := range userURLs {
+		URL, _ := s.GetURL(shortID)
+		res = append(res, ShortLink{
+			shortID,
+			URL,
+			userID,
+		})
+	}
+
+	return res
 }
 
 func (s MemoryStorage) AddURL(ID string, URL string, userID string) error {
@@ -96,9 +117,22 @@ func (s DBStorage) GetURL(ID string) (string, error) {
 	return res, nil
 }
 
-func (s DBStorage) GetUserURLs(userID string) []string {
-	var res []string
-	_ = s.DBConn.QueryRow(context.Background(), "SELECT original_url FROM shorten_urls WHERE user_id = $1", userID).Scan(&res)
+func (s DBStorage) GetUserURLs(userID string) []ShortLink {
+	res := make([]ShortLink, 0)
+	rows, err := s.DBConn.Query(context.Background(), "SELECT id, original_url FROM shorten_urls WHERE user_id = $1", userID)
+	if err != nil {
+		return res
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var r ShortLink
+		err := rows.Scan(&r.ID, &r.OriginalURL)
+		if err != nil {
+			return nil
+		}
+		res = append(res, r)
+	}
 
 	return res
 }
