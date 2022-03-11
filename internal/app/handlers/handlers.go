@@ -111,21 +111,48 @@ func (h Handler) DBPingHandler(c *gin.Context) {
 	c.String(http.StatusOK, "")
 }
 
-func storeNewLink(h Handler, c *gin.Context, URL string) (string, error) {
-	userIDEnc, _ := c.Cookie("user-id")
-	urlID := uuid.NewV4().String()
+func (h Handler) ShortenBatchHandler(c *gin.Context) {
+	var req ShortenBatchRequest
+	userID := c.GetString("user-id")
 
-	if userIDEnc == "" {
-		err := h.Storage.AddURL(urlID, URL, "no-user")
+	err := json.NewDecoder(c.Request.Body).Decode(&req)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "")
+		return
+	}
+
+	links := make([]storage.ShortLink, 0)
+
+	for _, link := range req {
+		links = append(links, storage.ShortLink{ID: link.ID, OriginalURL: link.URL, UserID: userID})
+	}
+
+	err = h.Storage.AddURLBatch(links)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "")
+		return
+	}
+
+	res := make([]BatchLinkItem, 0)
+
+	for _, link := range links {
+		res = append(res, BatchLinkItem{ID: link.ID, SortURL: fmt.Sprintf("%s/%s", h.Config.BaseURL, link.ID)})
+	}
+
+	c.JSON(http.StatusCreated, res)
+}
+
+func storeNewLink(h Handler, c *gin.Context, URL string) (string, error) {
+	urlID := uuid.NewV4().String()
+	userID := c.GetString("user-id")
+
+	if userID == "" {
+		err := h.Storage.AddURL(storage.ShortLink{ID: urlID, OriginalURL: URL, UserID: "no-user"})
 		if err != nil {
 			return "", err
 		}
 	} else {
-		userIDDec, err := app.Decrypt([]byte(userIDEnc), h.Config.AppKey)
-		if err != nil {
-			return "", err
-		}
-		err = h.Storage.AddURL(urlID, URL, userIDDec)
+		err := h.Storage.AddURL(storage.ShortLink{ID: urlID, OriginalURL: URL, UserID: userID})
 		if err != nil {
 			return "", err
 		}

@@ -12,7 +12,8 @@ import (
 
 type Repository interface {
 	GetURL(ID string) (string, error)
-	AddURL(ID string, URL string, userID string) error
+	AddURL(link ShortLink) error
+	AddURLBatch(links []ShortLink) error
 	GetUserURLs(userID string) []ShortLink
 	CleanUp(c app.Config)
 }
@@ -61,18 +62,28 @@ func (s MemoryStorage) GetUserURLs(userID string) []ShortLink {
 	return res
 }
 
-func (s MemoryStorage) AddURL(ID string, URL string, userID string) error {
-	existing, _ := s.GetURL(ID)
+func (s MemoryStorage) AddURL(link ShortLink) error {
+	existing, _ := s.GetURL(link.ID)
 	if existing != "" {
-		return fmt.Errorf("item with ID %s already exsists", ID)
+		return fmt.Errorf("item with ID %s already exsists", link.ID)
 	}
-	s.ShortenURLs[ID] = URL
-	userURLs := s.GetUserURLs(userID)
+	s.ShortenURLs[link.ID] = link.OriginalURL
+	userURLs := s.GetUserURLs(link.UserID)
 	if len(userURLs) == 0 {
-		s.UserLinks[userID] = make([]string, 0)
+		s.UserLinks[link.UserID] = make([]string, 0)
 	}
-	s.UserLinks[userID] = append(s.UserLinks[userID], ID)
+	s.UserLinks[link.UserID] = append(s.UserLinks[link.UserID], link.ID)
 
+	return nil
+}
+
+func (s MemoryStorage) AddURLBatch(links []ShortLink) error {
+	for _, link := range links {
+		err := s.AddURL(link)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -137,8 +148,27 @@ func (s DBStorage) GetUserURLs(userID string) []ShortLink {
 	return res
 }
 
-func (s DBStorage) AddURL(ID string, URL string, userID string) error {
-	_, err := s.DBConn.Exec(context.Background(), "INSERT INTO shorten_urls VALUES ($1, $2, $3)", ID, URL, userID)
+func (s DBStorage) AddURL(link ShortLink) error {
+	_, err := s.DBConn.Exec(context.Background(), "INSERT INTO shorten_urls VALUES ($1, $2, $3)", link.ID, link.OriginalURL, link.UserID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s DBStorage) AddURLBatch(links []ShortLink) error {
+	rows := make([][]interface{}, 0)
+	for _, link := range links {
+		rows = append(rows, []interface{}{link.ID, link.OriginalURL, link.UserID})
+	}
+	_, err := s.DBConn.CopyFrom(
+		context.Background(),
+		pgx.Identifier{"shorten_urls"},
+		[]string{"id", "original_url", "user_id"},
+		pgx.CopyFromRows(rows),
+	)
+
 	if err != nil {
 		return err
 	}
