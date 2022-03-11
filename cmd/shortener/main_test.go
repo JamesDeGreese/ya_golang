@@ -26,7 +26,7 @@ func TestGetShortLink(t *testing.T) {
 		t.FailNow()
 	}
 	s := storage.InitStorage(c)
-	err = s.AddURL("123", "https://example.org", "12345")
+	err = s.AddURL(storage.ShortLink{ID: "123", OriginalURL: "https://example.org", UserID: "12345"})
 	if err != nil {
 		t.FailNow()
 	}
@@ -107,7 +107,7 @@ func TestGetShortLinkGzip(t *testing.T) {
 		t.FailNow()
 	}
 	s := storage.InitStorage(c)
-	err = s.AddURL("123", "https://example.org", "12345")
+	err = s.AddURL(storage.ShortLink{ID: "123", OriginalURL: "https://example.org", UserID: "12345"})
 	if err != nil {
 		t.FailNow()
 	}
@@ -206,7 +206,7 @@ func TestGetUserLinks(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	err = s.AddURL("123", "https://example.org", userID)
+	err = s.AddURL(storage.ShortLink{ID: "123", OriginalURL: "https://example.org", UserID: userID})
 	if err != nil {
 		t.FailNow()
 	}
@@ -269,4 +269,28 @@ func TestPingDBFail(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestBatchInsert(t *testing.T) {
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		t.FailNow()
+	}
+	s := storage.InitStorage(c)
+	r := router.SetupRouter(c, s)
+
+	w := httptest.NewRecorder()
+	rBody, _ := json.Marshal(handlers.ShortenBatchRequest{
+		{ID: "123", URL: "https://youtute.com"},
+		{ID: "321", URL: "https://example.org"},
+	})
+	b := bytes.NewBuffer(rBody)
+	req, err := http.NewRequest(http.MethodPost, "/api/shorten/batch", b)
+	r.ServeHTTP(w, req)
+
+	res := w.Body.String()
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.NotEmpty(t, res)
 }

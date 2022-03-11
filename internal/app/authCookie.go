@@ -4,7 +4,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"net/http"
-	"net/url"
 
 	"github.com/gin-gonic/gin"
 	uuid "github.com/satori/go.uuid"
@@ -14,21 +13,20 @@ func AuthCookieMiddleware(cf Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		cookie, err := c.Cookie("user-id")
 		if cookie == "" || err != nil {
-			encID, err := Encrypt(uuid.NewV4().String(), cf.AppKey)
+			userID := uuid.NewV4().String()
+			encID, err := Encrypt(userID, cf.AppKey)
 			if err != nil {
 				c.String(http.StatusInternalServerError, "")
 				return
 			}
-			c.Request.AddCookie(&http.Cookie{
-				Name:     "user-id",
-				Value:    url.QueryEscape(encID),
-				MaxAge:   3600,
-				Path:     "/",
-				Domain:   cf.Address,
-				Secure:   false,
-				HttpOnly: false,
-			})
+			c.Set("user-id", userID)
 			c.SetCookie("user-id", encID, 3600, "/", cf.Address, false, false)
+		} else {
+			userID, err := Decrypt([]byte(cookie), cf.AppKey)
+			if err != nil {
+				return
+			}
+			c.Set("user-id", userID)
 		}
 		c.Next()
 	}
