@@ -7,11 +7,14 @@ import (
 	"os"
 
 	"github.com/JamesDeGreese/ya_golang/internal/app"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v4"
 )
 
 type Repository interface {
-	GetURL(ID string) (string, error)
+	GetURLByID(ID string) (string, error)
+	GetURLByOriginalURL(OriginalURL string) (string, error)
 	AddURL(link ShortLink) error
 	AddURLBatch(links []ShortLink) error
 	GetUserURLs(userID string) []ShortLink
@@ -33,14 +36,38 @@ type ShortLink struct {
 	UserID      string
 }
 
-func (s MemoryStorage) GetURL(ID string) (string, error) {
+type RecordDuplicateError struct {
+	param string
+	value string
+}
+
+func (e *RecordDuplicateError) Error() string {
+	return fmt.Sprintf("Record with same param %s with value %s already exists", e.param, e.value)
+}
+
+func (s MemoryStorage) GetURLByID(ID string) (string, error) {
 	item := s.ShortenURLs[ID]
 
 	if item == "" {
 		return "", fmt.Errorf("item not found")
 	}
 
-	return s.ShortenURLs[ID], nil
+	return item, nil
+}
+
+func (s MemoryStorage) GetURLByOriginalURL(OriginalURL string) (string, error) {
+	rev := make(map[string]string, len(s.ShortenURLs))
+	for ID, URL := range s.ShortenURLs {
+		rev[URL] = ID
+	}
+
+	item := rev[OriginalURL]
+
+	if item == "" {
+		return "", fmt.Errorf("item not found")
+	}
+
+	return item, nil
 }
 
 func (s MemoryStorage) GetUserURLs(userID string) []ShortLink {
@@ -51,7 +78,7 @@ func (s MemoryStorage) GetUserURLs(userID string) []ShortLink {
 	}
 
 	for _, shortID := range userURLs {
-		URL, _ := s.GetURL(shortID)
+		URL, _ := s.GetURLByID(shortID)
 		res = append(res, ShortLink{
 			shortID,
 			URL,
@@ -63,9 +90,9 @@ func (s MemoryStorage) GetUserURLs(userID string) []ShortLink {
 }
 
 func (s MemoryStorage) AddURL(link ShortLink) error {
-	existing, _ := s.GetURL(link.ID)
+	existing, _ := s.GetURLByOriginalURL(link.OriginalURL)
 	if existing != "" {
-		return fmt.Errorf("item with ID %s already exsists", link.ID)
+		return &RecordDuplicateError{param: "OriginalID", value: link.OriginalURL}
 	}
 	s.ShortenURLs[link.ID] = link.OriginalURL
 	userURLs := s.GetUserURLs(link.UserID)
@@ -115,9 +142,22 @@ type ShortenURLEntity struct {
 	UserID      string
 }
 
-func (s DBStorage) GetURL(ID string) (string, error) {
+func (s DBStorage) GetURLByID(ID string) (string, error) {
 	var res string
 	err := s.DBConn.QueryRow(context.Background(), "SELECT original_url FROM shorten_urls WHERE id = $1", ID).Scan(&res)
+	if err == pgx.ErrNoRows {
+		return res, nil
+	}
+	if err != nil {
+		return "", err
+	}
+
+	return res, nil
+}
+
+func (s DBStorage) GetURLByOriginalURL(OriginalURL string) (string, error) {
+	var res string
+	err := s.DBConn.QueryRow(context.Background(), "SELECT id FROM shorten_urls WHERE original_url = $1", OriginalURL).Scan(&res)
 	if err == pgx.ErrNoRows {
 		return res, nil
 	}
@@ -151,6 +191,10 @@ func (s DBStorage) GetUserURLs(userID string) []ShortLink {
 func (s DBStorage) AddURL(link ShortLink) error {
 	_, err := s.DBConn.Exec(context.Background(), "INSERT INTO shorten_urls VALUES ($1, $2, $3)", link.ID, link.OriginalURL, link.UserID)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if pgErr.Code == pgerrcode.UniqueViolation {
+			return &RecordDuplicateError{param: "original_url", value: link.OriginalURL}
+		}
 		return err
 	}
 
@@ -194,6 +238,7 @@ func InitStorage(c app.Config) Repository {
 		}
 
 		_, err = dbSt.DBConn.Exec(context.Background(), "CREATE TABLE IF NOT EXISTS shorten_urls (id varchar(36), original_url varchar(255), user_id varchar(36));")
+		_, err = dbSt.DBConn.Exec(context.Background(), "CREATE UNIQUE INDEX IF NOT EXISTS original_url_idx ON shorten_urls (original_url);")
 		if err != nil {
 			return initMemoryStorage(c)
 		}
