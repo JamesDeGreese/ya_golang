@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"os"
 
@@ -192,8 +193,10 @@ func (s DBStorage) AddURL(link ShortLink) error {
 	_, err := s.DBConn.Exec(context.Background(), "INSERT INTO shorten_urls VALUES ($1, $2, $3)", link.ID, link.OriginalURL, link.UserID)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if pgErr.Code == pgerrcode.UniqueViolation {
-			return &RecordDuplicateError{param: "original_url", value: link.OriginalURL}
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == pgerrcode.UniqueViolation {
+				return &RecordDuplicateError{param: "original_url", value: link.OriginalURL}
+			}
 		}
 		return err
 	}
@@ -238,6 +241,9 @@ func InitStorage(c app.Config) Repository {
 		}
 
 		_, err = dbSt.DBConn.Exec(context.Background(), "CREATE TABLE IF NOT EXISTS shorten_urls (id varchar(36), original_url varchar(255), user_id varchar(36));")
+		if err != nil {
+			return initMemoryStorage(c)
+		}
 		_, err = dbSt.DBConn.Exec(context.Background(), "CREATE UNIQUE INDEX IF NOT EXISTS original_url_idx ON shorten_urls (original_url);")
 		if err != nil {
 			return initMemoryStorage(c)

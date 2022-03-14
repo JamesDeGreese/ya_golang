@@ -47,7 +47,7 @@ func (h Handler) PostHandler(c *gin.Context) {
 	if err != nil {
 		var rde *storage.RecordDuplicateError
 		if errors.As(err, &rde) {
-			c.String(http.StatusConflict, "%s", urlID)
+			c.String(http.StatusConflict, "%s", short)
 			return
 		}
 		c.String(http.StatusInternalServerError, "")

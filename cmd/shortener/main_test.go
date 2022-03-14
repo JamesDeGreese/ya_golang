@@ -313,10 +313,15 @@ func TestCreateShortLinkDuplicate(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodPost, "/", strings.NewReader(URL))
+	if err != nil {
+		t.FailNow()
+	}
 	r.ServeHTTP(w, req)
 
+	res := w.Body.String()
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusConflict, w.Code)
+	assert.NotEmpty(t, res)
 }
 
 func TestCreateShortLinkJSONDuplicate(t *testing.T) {
@@ -335,6 +340,9 @@ func TestCreateShortLinkJSONDuplicate(t *testing.T) {
 	rBody, _ := json.Marshal(handlers.PostJSONRequest{URL: URL})
 	b := bytes.NewBuffer(rBody)
 	req, err := http.NewRequest(http.MethodPost, "/api/shorten", b)
+	if err != nil {
+		t.FailNow()
+	}
 	r.ServeHTTP(w, req)
 
 	assert.NoError(t, err)
