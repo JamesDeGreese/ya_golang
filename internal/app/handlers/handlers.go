@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -25,7 +26,7 @@ func (h Handler) GetHandler(c *gin.Context) {
 		return
 	}
 
-	fullURL, err := h.Storage.GetURL(ID)
+	fullURL, err := h.Storage.GetURLByID(ID)
 	if fullURL == "" || err != nil {
 		c.String(http.StatusNotFound, "")
 		return
@@ -42,12 +43,16 @@ func (h Handler) PostHandler(c *gin.Context) {
 	}
 
 	urlID, err := storeNewLink(h, c, string(body))
+	short := fmt.Sprintf("%s/%s", h.Config.BaseURL, urlID)
 	if err != nil {
+		var rde *storage.RecordDuplicateError
+		if errors.As(err, &rde) {
+			c.String(http.StatusConflict, "%s", short)
+			return
+		}
 		c.String(http.StatusInternalServerError, "")
 		return
 	}
-
-	short := fmt.Sprintf("%s/%s", h.Config.BaseURL, urlID)
 
 	c.String(http.StatusCreated, "%s", short)
 }
@@ -62,12 +67,16 @@ func (h Handler) PostHandlerJSON(c *gin.Context) {
 	}
 
 	urlID, err := storeNewLink(h, c, req.URL)
+	res := PostJSONResponse{Result: fmt.Sprintf("%s/%s", h.Config.BaseURL, urlID)}
 	if err != nil {
+		var rde *storage.RecordDuplicateError
+		if errors.As(err, &rde) {
+			c.JSON(http.StatusConflict, res)
+			return
+		}
 		c.String(http.StatusInternalServerError, "")
 		return
 	}
-
-	res := PostJSONResponse{Result: fmt.Sprintf("%s/%s", h.Config.BaseURL, urlID)}
 
 	c.JSON(http.StatusCreated, res)
 }
@@ -102,7 +111,7 @@ func (h Handler) UserURLsHandler(c *gin.Context) {
 }
 
 func (h Handler) DBPingHandler(c *gin.Context) {
-	_, err := h.Storage.GetURL("fake_id")
+	_, err := h.Storage.GetURLByID("fake_id")
 	if err != nil {
 		c.String(http.StatusInternalServerError, "")
 		return
@@ -146,16 +155,17 @@ func storeNewLink(h Handler, c *gin.Context, URL string) (string, error) {
 	urlID := uuid.NewV4().String()
 	userID := c.GetString("user-id")
 
-	if userID == "" {
-		err := h.Storage.AddURL(storage.ShortLink{ID: urlID, OriginalURL: URL, UserID: "no-user"})
-		if err != nil {
-			return "", err
+	err := h.Storage.AddURL(storage.ShortLink{ID: urlID, OriginalURL: URL, UserID: userID})
+	if err != nil {
+		var rde *storage.RecordDuplicateError
+		if errors.As(err, &rde) {
+			ex, getErr := h.Storage.GetURLByOriginalURL(URL)
+			if getErr != nil {
+				return "", getErr
+			}
+			return ex, err
 		}
-	} else {
-		err := h.Storage.AddURL(storage.ShortLink{ID: urlID, OriginalURL: URL, UserID: userID})
-		if err != nil {
-			return "", err
-		}
+		return "", err
 	}
 
 	return urlID, nil

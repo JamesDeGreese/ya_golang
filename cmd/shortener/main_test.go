@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 	"github.com/JamesDeGreese/ya_golang/internal/app/handlers"
 	"github.com/JamesDeGreese/ya_golang/internal/app/router"
 	"github.com/JamesDeGreese/ya_golang/internal/app/storage"
+	"github.com/bxcodec/faker/v3"
 	"github.com/caarlos0/env/v6"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -26,7 +28,8 @@ func TestGetShortLink(t *testing.T) {
 		t.FailNow()
 	}
 	s := storage.InitStorage(c)
-	err = s.AddURL(storage.ShortLink{ID: "123", OriginalURL: "https://example.org", UserID: "12345"})
+	URL := faker.URL()
+	err = s.AddURL(storage.ShortLink{ID: "123", OriginalURL: URL, UserID: "12345"})
 	if err != nil {
 		t.FailNow()
 	}
@@ -72,7 +75,7 @@ func TestCreateShortLink(t *testing.T) {
 	r := router.SetupRouter(c, s)
 
 	w := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodPost, "/", strings.NewReader("https://youtube.com"))
+	req, err := http.NewRequest(http.MethodPost, "/", strings.NewReader(faker.URL()))
 	r.ServeHTTP(w, req)
 
 	assert.NoError(t, err)
@@ -89,7 +92,7 @@ func TestCreateShortLinkJSON(t *testing.T) {
 	r := router.SetupRouter(c, s)
 
 	w := httptest.NewRecorder()
-	rBody, _ := json.Marshal(handlers.PostJSONRequest{URL: "https://youtube.com"})
+	rBody, _ := json.Marshal(handlers.PostJSONRequest{URL: faker.URL()})
 	b := bytes.NewBuffer(rBody)
 	req, err := http.NewRequest(http.MethodPost, "/api/shorten", b)
 	r.ServeHTTP(w, req)
@@ -107,7 +110,8 @@ func TestGetShortLinkGzip(t *testing.T) {
 		t.FailNow()
 	}
 	s := storage.InitStorage(c)
-	err = s.AddURL(storage.ShortLink{ID: "123", OriginalURL: "https://example.org", UserID: "12345"})
+	ID := faker.DomainName()
+	err = s.AddURL(storage.ShortLink{ID: ID, OriginalURL: faker.URL(), UserID: "12345"})
 	if err != nil {
 		t.FailNow()
 	}
@@ -120,7 +124,7 @@ func TestGetShortLinkGzip(t *testing.T) {
 	}{
 		{
 			name:    "Test 200",
-			request: "/123",
+			request: fmt.Sprintf("/%s", ID),
 			want:    http.StatusTemporaryRedirect,
 		},
 		{
@@ -155,7 +159,7 @@ func TestCreateShortLinkGzip(t *testing.T) {
 
 	var b bytes.Buffer
 	gzw := gzip.NewWriter(&b)
-	gzw.Write([]byte("https://youtube.com"))
+	gzw.Write([]byte(faker.URL()))
 	gzw.Close()
 
 	w := httptest.NewRecorder()
@@ -178,7 +182,7 @@ func TestCreateShortLinkJSONGzip(t *testing.T) {
 	r := router.SetupRouter(c, s)
 
 	w := httptest.NewRecorder()
-	rBody, _ := json.Marshal(handlers.PostJSONRequest{URL: "https://youtube.com"})
+	rBody, _ := json.Marshal(handlers.PostJSONRequest{URL: faker.URL()})
 	var b bytes.Buffer
 	gzw := gzip.NewWriter(&b)
 	gzw.Write(rBody)
@@ -206,7 +210,7 @@ func TestGetUserLinks(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	err = s.AddURL(storage.ShortLink{ID: "123", OriginalURL: "https://example.org", UserID: userID})
+	err = s.AddURL(storage.ShortLink{ID: faker.DomainName(), OriginalURL: "https://example.org", UserID: userID})
 	if err != nil {
 		t.FailNow()
 	}
@@ -282,8 +286,8 @@ func TestBatchInsert(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	rBody, _ := json.Marshal(handlers.ShortenBatchRequest{
-		{ID: "123", URL: "https://youtute.com"},
-		{ID: "321", URL: "https://example.org"},
+		{ID: "123", URL: faker.URL()},
+		{ID: "321", URL: faker.URL()},
 	})
 	b := bytes.NewBuffer(rBody)
 	req, err := http.NewRequest(http.MethodPost, "/api/shorten/batch", b)
@@ -293,4 +297,53 @@ func TestBatchInsert(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.NotEmpty(t, res)
+}
+
+func TestCreateShortLinkDuplicate(t *testing.T) {
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		t.FailNow()
+	}
+	s := storage.InitStorage(c)
+	r := router.SetupRouter(c, s)
+	ID := faker.DomainName()
+	URL := faker.URL()
+	err = s.AddURL(storage.ShortLink{ID: ID, OriginalURL: URL, UserID: "12345"})
+	if err != nil {
+		t.FailNow()
+	}
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/", strings.NewReader(URL))
+	r.ServeHTTP(w, req)
+
+	res := w.Body.String()
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusConflict, w.Code)
+	assert.NotEmpty(t, res)
+}
+
+func TestCreateShortLinkJSONDuplicate(t *testing.T) {
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		t.FailNow()
+	}
+	s := storage.InitStorage(c)
+	r := router.SetupRouter(c, s)
+	ID := faker.DomainName()
+	URL := faker.URL()
+	err = s.AddURL(storage.ShortLink{ID: ID, OriginalURL: URL, UserID: "12345"})
+	if err != nil {
+		t.FailNow()
+	}
+	w := httptest.NewRecorder()
+	rBody, _ := json.Marshal(handlers.PostJSONRequest{URL: URL})
+	b := bytes.NewBuffer(rBody)
+	req, err := http.NewRequest(http.MethodPost, "/api/shorten", b)
+
+	r.ServeHTTP(w, req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusConflict, w.Code)
 }
