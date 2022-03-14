@@ -1,0 +1,16 @@
+version: "3.5"
+
+services:
+  postgresql:
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=ya_golang_db
+
+networks:
+  ya-golang-net:
+    name: ya-golang-net
+    driver: bridge

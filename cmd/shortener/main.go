@@ -22,16 +22,18 @@ func main() {
 	flag.StringVar(&c.Address, "a", c.Address, "a 127.0.0.1:8080")
 	flag.StringVar(&c.BaseURL, "b", c.BaseURL, "b https://example.org")
 	flag.StringVar(&c.FileStoragePath, "f", c.FileStoragePath, "f /tmp/storage")
+	flag.StringVar(&c.DatabaseDSN, "d", c.DatabaseDSN, "d postgres://username:password@host:port/database_name")
+	flag.StringVar(&c.DatabaseDSN, "database-dsn", c.DatabaseDSN, "d postgres://username:password@host:port/database_name")
 	flag.Parse()
 
-	s := storage.ConstructStorage(c)
+	s := storage.InitStorage(c)
 	r := router.SetupRouter(c, s)
 
 	ch := make(chan os.Signal)
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
 		<-ch
-		storage.DestructStorage(c, s)
+		s.CleanUp(c)
 		os.Exit(0)
 	}()
 
