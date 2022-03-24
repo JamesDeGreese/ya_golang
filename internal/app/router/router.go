@@ -19,7 +19,8 @@ func SetupRouter(c app.Config, s storage.Repository) *gin.Engine {
 	r.GET("/:ID", h.GetHandler)
 	r.POST("/", h.PostHandler)
 	r.POST("/api/shorten", h.PostHandlerJSON)
-	r.GET("/api/user/urls", h.UserURLsHandler)
+	r.GET("/api/user/urls", h.UserURLsGetHandler)
+	r.DELETE("/api/user/urls", h.UserURLsDeleteHandler)
 	r.GET("/ping", h.DBPingHandler)
 	r.POST("/api/shorten/batch", h.ShortenBatchHandler)
 	return r

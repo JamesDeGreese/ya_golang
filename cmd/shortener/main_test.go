@@ -210,7 +210,7 @@ func TestGetUserLinks(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	err = s.AddURL(storage.ShortLink{ID: faker.DomainName(), OriginalURL: "https://example.org", UserID: userID})
+	err = s.AddURL(storage.ShortLink{ID: faker.DomainName(), OriginalURL: faker.URL(), UserID: userID})
 	if err != nil {
 		t.FailNow()
 	}
@@ -346,4 +346,47 @@ func TestCreateShortLinkJSONDuplicate(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusConflict, w.Code)
+}
+
+func TestDeleteUserLinks(t *testing.T) {
+	c := app.Config{}
+	err := env.Parse(&c)
+	if err != nil {
+		t.FailNow()
+	}
+	s := storage.InitStorage(c)
+	userID := uuid.NewV4().String()
+	rec1ID := faker.DomainName()
+	rec2ID := faker.DomainName()
+	userIDEnc, err := app.Encrypt(userID, c.AppKey)
+	if err != nil {
+		t.FailNow()
+	}
+	err = s.AddURL(storage.ShortLink{ID: rec1ID, OriginalURL: faker.URL(), UserID: userID})
+	if err != nil {
+		t.FailNow()
+	}
+
+	err = s.AddURL(storage.ShortLink{ID: rec2ID, OriginalURL: faker.URL(), UserID: userID})
+	if err != nil {
+		t.FailNow()
+	}
+
+	r := router.SetupRouter(c, s)
+	rBody, _ := json.Marshal([]string{rec1ID, rec2ID})
+	b := bytes.NewBuffer(rBody)
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodDelete, "/api/user/urls", b)
+	req.AddCookie(&http.Cookie{
+		Name:     "user-id",
+		Value:    url.QueryEscape(userIDEnc),
+		MaxAge:   3600,
+		Path:     "/",
+		Domain:   c.Address,
+		Secure:   false,
+		HttpOnly: false,
+	})
+	r.ServeHTTP(w, req)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusAccepted, w.Code)
 }
