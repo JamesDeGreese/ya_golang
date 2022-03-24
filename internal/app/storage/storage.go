@@ -159,11 +159,11 @@ func (s DBStorage) GetURLByID(ID string) (string, error) {
 	}
 
 	err := s.DBConn.QueryRow(context.Background(), "SELECT original_url, is_deleted FROM shorten_urls WHERE id = $1", ID).Scan(&res.originalURL, &res.isDeleted)
-	if err != nil {
-		return "", err
-	}
 	if err == pgx.ErrNoRows {
 		return "", nil
+	}
+	if err != nil {
+		return "", err
 	}
 
 	if res.isDeleted {
