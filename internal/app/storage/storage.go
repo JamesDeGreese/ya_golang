@@ -165,11 +165,8 @@ func (s DBStorage) GetURLByID(ID string) (string, error) {
 	if err == pgx.ErrNoRows {
 		return "", nil
 	}
-	if err != nil {
-		return "", err
-	}
 
-	if res.isDeleted == true {
+	if res.isDeleted {
 		return "", &RecordSoftDeletedError{ID}
 	}
 
