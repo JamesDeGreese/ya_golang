@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/JamesDeGreese/ya_golang/internal/app"
 	"github.com/JamesDeGreese/ya_golang/internal/app/handlers"
@@ -389,4 +390,12 @@ func TestDeleteUserLinks(t *testing.T) {
 	r.ServeHTTP(w, req)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusAccepted, w.Code)
+
+	time.Sleep(2 * time.Second)
+	w = httptest.NewRecorder()
+	req, err = http.NewRequest(http.MethodGet, fmt.Sprintf("/%s", rec1ID), nil)
+	r.ServeHTTP(w, req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusGone, w.Code)
 }

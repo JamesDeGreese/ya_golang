@@ -10,6 +10,7 @@ import (
 	"github.com/JamesDeGreese/ya_golang/internal/app"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v4"
 )
 
@@ -252,7 +253,12 @@ func (s MemoryStorage) DeleteUserURLs(IDs []string, userID string) error {
 }
 
 func (s DBStorage) DeleteUserURLs(IDs []string, userID string) error {
-	_, err := s.DBConn.Exec(context.Background(), "UPDATE shorten_urls SET is_deleted = true WHERE user_id = $1 AND id IN $2", userID, IDs)
+	preparedIDs := &pgtype.TextArray{}
+	err := preparedIDs.Set(IDs)
+	if err != nil {
+		return err
+	}
+	_, err = s.DBConn.Exec(context.Background(), "UPDATE shorten_urls SET is_deleted = true WHERE user_id = $1 AND id = ANY($2)", userID, preparedIDs)
 	return err
 }
 
