@@ -28,6 +28,10 @@ func (h Handler) GetHandler(c *gin.Context) {
 
 	fullURL, err := h.Storage.GetURLByID(ID)
 	if fullURL == "" || err != nil {
+		var rde *storage.RecordSoftDeletedError
+		if errors.As(err, &rde) {
+			c.String(http.StatusGone, "")
+		}
 		c.String(http.StatusNotFound, "")
 		return
 	}
@@ -81,7 +85,7 @@ func (h Handler) PostHandlerJSON(c *gin.Context) {
 	c.JSON(http.StatusCreated, res)
 }
 
-func (h Handler) UserURLsHandler(c *gin.Context) {
+func (h Handler) UserURLsGetHandler(c *gin.Context) {
 	userIDEnc, err := c.Cookie("user-id")
 	if err != nil {
 		c.JSON(http.StatusNoContent, "{}")
@@ -169,4 +173,17 @@ func storeNewLink(h Handler, c *gin.Context, URL string) (string, error) {
 	}
 
 	return urlID, nil
+}
+
+func (h Handler) UserURLsDeleteHandler(c *gin.Context) {
+	var IDs []string
+	userID := c.GetString("user-id")
+	err := json.NewDecoder(c.Request.Body).Decode(&IDs)
+	if err != nil {
+		return
+	}
+	go func() {
+		_ = h.Storage.DeleteUserURLs(IDs, userID)
+	}()
+	c.String(http.StatusAccepted, "")
 }

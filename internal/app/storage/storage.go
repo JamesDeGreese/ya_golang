@@ -10,6 +10,7 @@ import (
 	"github.com/JamesDeGreese/ya_golang/internal/app"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v4"
 )
 
@@ -20,6 +21,7 @@ type Repository interface {
 	AddURLBatch(links []ShortLink) error
 	GetUserURLs(userID string) []ShortLink
 	CleanUp(c app.Config)
+	DeleteUserURLs(IDs []string, userID string) error
 }
 
 type MemoryStorage struct {
@@ -44,6 +46,14 @@ type RecordDuplicateError struct {
 
 func (e *RecordDuplicateError) Error() string {
 	return fmt.Sprintf("Record with same param %s with value %s already exists", e.param, e.value)
+}
+
+type RecordSoftDeletedError struct {
+	ID string
+}
+
+func (e *RecordSoftDeletedError) Error() string {
+	return fmt.Sprintf("Record with ID %s was marked as deleted", e.ID)
 }
 
 func (s MemoryStorage) GetURLByID(ID string) (string, error) {
@@ -144,16 +154,24 @@ type ShortenURLEntity struct {
 }
 
 func (s DBStorage) GetURLByID(ID string) (string, error) {
-	var res string
-	err := s.DBConn.QueryRow(context.Background(), "SELECT original_url FROM shorten_urls WHERE id = $1", ID).Scan(&res)
+	var res struct {
+		originalURL string
+		isDeleted   bool
+	}
+
+	err := s.DBConn.QueryRow(context.Background(), "SELECT original_url, is_deleted FROM shorten_urls WHERE id = $1", ID).Scan(&res.originalURL, &res.isDeleted)
 	if err == pgx.ErrNoRows {
-		return res, nil
+		return "", nil
 	}
 	if err != nil {
 		return "", err
 	}
 
-	return res, nil
+	if res.isDeleted {
+		return "", &RecordSoftDeletedError{ID}
+	}
+
+	return res.originalURL, nil
 }
 
 func (s DBStorage) GetURLByOriginalURL(OriginalURL string) (string, error) {
@@ -230,6 +248,20 @@ func (s DBStorage) CleanUp(c app.Config) {
 	}
 }
 
+func (s MemoryStorage) DeleteUserURLs(IDs []string, userID string) error {
+	return nil
+}
+
+func (s DBStorage) DeleteUserURLs(IDs []string, userID string) error {
+	preparedIDs := &pgtype.TextArray{}
+	err := preparedIDs.Set(IDs)
+	if err != nil {
+		return err
+	}
+	_, err = s.DBConn.Exec(context.Background(), "UPDATE shorten_urls SET is_deleted = true WHERE user_id = $1 AND id = ANY($2)", userID, preparedIDs)
+	return err
+}
+
 func InitStorage(c app.Config) Repository {
 	if c.DatabaseDSN != "" {
 		conn, err := pgx.Connect(context.Background(), c.DatabaseDSN)
@@ -240,7 +272,7 @@ func InitStorage(c app.Config) Repository {
 			DBConn: conn,
 		}
 
-		_, err = dbSt.DBConn.Exec(context.Background(), "CREATE TABLE IF NOT EXISTS shorten_urls (id varchar(36), original_url varchar(255), user_id varchar(36));")
+		_, err = dbSt.DBConn.Exec(context.Background(), "CREATE TABLE IF NOT EXISTS shorten_urls (id varchar(36), original_url varchar(255), user_id varchar(36), is_deleted boolean DEFAULT false);")
 		if err != nil {
 			return initMemoryStorage(c)
 		}
